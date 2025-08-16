@@ -12,7 +12,6 @@ from timm.models.layers import DropPath
 
 from . import utils_heads
 from .base import BaseHead
-#from ..backbones.vip import Encoder
 
 Norm = nn.LayerNorm
 
@@ -27,7 +26,6 @@ class AdaptHead(BaseHead):
         out_dim = 108
         self.out_dim = out_dim
         out_channels = self.in_channels // 4
-        #out_channels = out_dim // 4
 
         self.bottleneck = nn.ModuleDict({t: utils_heads.ConvBNReLU(out_dim,
                                                                    out_channels,
@@ -42,13 +40,11 @@ class AdaptHead(BaseHead):
                                            for t in self.tasks})
 
         self.specific_tasks = nn.ModuleList([nn.Conv2d(self.in_channels, out_dim, kernel_size=1, groups=2)  for t in range(len(self.tasks))])
-        #self.inject_fea = nn.Conv2d(self.in_channels, out_dim, kernel_size=3, padding=(1,1))
-        self.inject_fea = nn.Conv2d(self.in_channels, out_dim, kernel_size=1, groups=2)
+        self.inject_prior = nn.Conv2d(self.in_channels, out_dim, kernel_size=1, groups=2)
 
         self.adapt_task_mixing = AdaptTaskMixing(channel_dim=out_dim*len(self.tasks), token_dim=14980)
 
         self.cross_atts = nn.ModuleList([nn.MultiheadAttention(out_dim, num_heads=2) for t in range(len(self.tasks))])
-        #self.task_prior = SpatialPriorModule(inplanes=self.idx_to_planes[0], embed_dim=out_dim)
         self.mlp = Mlp(out_dim, hidden_features=out_dim*2, act_layer=nn.GELU, norm_layer=Norm)
         self.norm2 = Norm(out_dim)
         drop_path=0.1
@@ -59,15 +55,12 @@ class AdaptHead(BaseHead):
 
     def forward(self, inp, inp_shape, image, **kwargs):
         out=[]
-        #task_prior_feas = self.task_prior(image)
-        #inp = [task_prior_feas[0]*inp[0], task_prior_feas[1]*inp[1], task_prior_feas[2]*inp[2],task_prior_feas[3]*inp[3]]
-
         inp = self._transform_inputs(inp)
         _, C, H ,W = inp.shape
         out_ls=[]
         x_t=[]
 
-        inp_inj = self.inject_fea(inp)
+        inp_inj = self.inject_prior(inp)
         
         for idx, specific_task in enumerate(self.specific_tasks):
             out_ls.append(specific_task(inp) + inp_inj)
@@ -81,8 +74,6 @@ class AdaptHead(BaseHead):
         for i, cross_att in enumerate(self.cross_atts):
             x_q = rearrange(out_ls[i], 'b c h w -> b (h w) c')
             x_q = x_q + x_adapt[i] + cross_att(x_adapt[i], x_adapt[i], x_adapt[i])[0] + cross_att(x_q, x_adapt[i], x_adapt[i])[0]
-            #x_q = x_q + cross_att(x_q, x_adapt[i], x_adapt[i])[0]
-            #x_q = x_q + self.cross_atts_2(x_q, x_qq, x_qq)[0]
             x_q = x_q + self.drop_path(self.mlp(self.norm2(x_q))) 
             x_t.append(rearrange(x_q, 'b (h w) c -> b c h w', h=H, w=W))
 
@@ -95,8 +86,6 @@ class AdaptHead(BaseHead):
             final_pred[t], size=inp_shape, mode='bilinear', align_corners=False) for t in self.tasks}
         return {'final': final_pred}
 
-
-            #[1,19920,107,140]/4 = [1,480,107,140]=task_specific_feats
         final_pred = {t: self.final_logits[t](task_specific_feats[t]) for t in self.tasks}
         final_pred = {t: nn.functional.interpolate(final_pred[t], size=inp_shape, mode='bilinear', align_corners=False) for t in self.tasks}
         return {'final':final_pred} #, {'final': fpn_out_inference}
@@ -112,7 +101,6 @@ class AdaptTaskMixing(nn.Module):
         self.fc_c = Mlp(channel_dim, hidden_features=channel_dim, act_layer=act, norm_layer=Norm)
 
         self.drop_path = DropPath(drop_prob=0.1) if drop_path else nn.Identity()
-        #self.reason = SimpleReasoning(num_parts, dim)
         self.LN = nn.LayerNorm(channel_dim)
 
     def forward(self, x, parts=None, qpos=None, kpos=None, mask=None):
@@ -130,11 +118,6 @@ class AdaptTaskMixing(nn.Module):
         x = x + y
         y = self.LN(x)
         x = x + self.fc_c(y)
-        #attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask)
-        #parts = parts + self.drop_path(attn_out)
-        #parts = self.reason(parts)
-        #if self.enc_ffn is not None:
-        #    parts = parts + self.drop_path(self.enc_ffn(parts))
         return x
 
 
