@@ -28,11 +28,11 @@ TPANet (with Swin-L) performance surpasses the previous state-of-the-art by a la
 
 **TPANet on NYUD-v2 dataset**
 
-| model|backbone|#Params| FLOPs | SemSeg| Depth | Noemal|Boundary| |
+| model|backbone|#Params| FLOPs | SemSeg| Depth | Noemal|Boundary|
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| TPANet | Swin-T | 34.69 M  |164.9 G |46.51	 |0.5987 |20.71  |76.90|  
-| TPANet | Swin-S | 53.34M |185.25G |50.90	 |0.5603  |20.05	 |78.20  |
-| TPANet | Swin-L | 205.61 M |378.58 G |56.42	 |0.5018 	 |19.02	 |79.10 |
+| TPANet | Swin-T | 34.69M  |164.9G  |46.51	 |0.5987  |20.71  |76.90|  
+| TPANet | Swin-S | 53.34M  |185.25G |50.90	 |0.5603  |20.05	|78.20|
+| TPANet | Swin-L | 205.61M |378.58G |56.42	 |0.5018 	|19.02	|79.10|
 
 **TPANet on PASCAL-Contex dataset**
 
