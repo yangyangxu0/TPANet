@@ -69,7 +69,7 @@ Dataset: PASCAL-Context and NYUD-v2. You can download the data from: [PASCALCont
 
 To train TPANet model:
 ```
-python ./src/main.py --cfg ./config/t-nyud/swin/baselinemt_swin_t_adanet.yaml --datamodule.data_dir $DATA_DIR --trainer.gpus 0,1,2,3,4,5,6,7
+python ./src/main.py --cfg ./config/t-nyud/swin/baselinemt_swin_t_tpanet.yaml --datamodule.data_dir $DATA_DIR --trainer.gpus 0,1,2,3,4,5,6,7
 ```
 
 **Evaluation**
