@@ -22,7 +22,6 @@ class AdaptHead(BaseHead):
         self.enc_dec_times=1
         self.head_endpoints = ['final']
         linear_dim = self.in_channels
-        #self.in_channels = 256
         out_dim = 108
         self.out_dim = out_dim
         out_channels = self.in_channels // 4
@@ -64,11 +63,10 @@ class AdaptHead(BaseHead):
         
         for idx, specific_task in enumerate(self.specific_tasks):
             out_ls.append(specific_task(inp) + inp_inj)
-            #out_ls.append(specific_task(inp) )
 
         x = torch.cat(out_ls, dim=1)
         x = rearrange(x, 'b c h w -> b (h w) c')
-        x_ada = self.adapt_task_mixing(x)  #x_ada=[b, hw, 4c] may add another feature
+        x_ada = self.adapt_task_mixing(x)
         x_adapt = torch.split(x_ada, self.out_dim, dim=2)
 
         for i, cross_att in enumerate(self.cross_atts):
@@ -88,7 +86,7 @@ class AdaptHead(BaseHead):
 
         final_pred = {t: self.final_logits[t](task_specific_feats[t]) for t in self.tasks}
         final_pred = {t: nn.functional.interpolate(final_pred[t], size=inp_shape, mode='bilinear', align_corners=False) for t in self.tasks}
-        return {'final':final_pred} #, {'final': fpn_out_inference}
+        return {'final':final_pred}
 
 
 
@@ -96,7 +94,6 @@ class AdaptTaskMixing(nn.Module):
     def __init__(self, channel_dim, token_dim, drop_path=0.1, act=nn.GELU, has_ffn=True):
         super(AdaptTaskMixing, self).__init__()
 
-        #self.fc_s = Mlp(token_dim, hidden_features= token_dim*0.0005, act_layer=act, norm_layer=Norm)
         self.fc_s = Mlp(token_dim, hidden_features= token_dim*0.0005, act_layer=act, norm_layer=Norm)
         self.fc_c = Mlp(channel_dim, hidden_features=channel_dim, act_layer=act, norm_layer=Norm)
 
